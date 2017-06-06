@@ -1,0 +1,19 @@
+{
+  "name": "nodejs-backend",
+  "version": "1.0.0",
+  "description": "A generic backend based on nodejs (+express +nodemon +docker)",
+  "main": "index.js",
+  "scripts": {
+    "test": "test",
+    "dev": "./node_modules/.bin/nodemon index.js"
+  },
+  "author": "Theo van Dijk",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0"
+  }
+}
