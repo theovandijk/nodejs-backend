@@ -57,3 +57,5 @@ typings/
 # dotenv environment variables file
 .env
 
+# JetBrains products like WebStorm and IntelliJ use this folder to store IDE configuration
+.idea
