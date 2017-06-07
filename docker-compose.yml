@@ -1,0 +1,12 @@
+version: '2'
+services:
+  db:
+    image: 'tutum/mongodb:3.2'
+    container_name: 'mongodb-container'
+    environment:
+      MONGODB_USER: 'user'
+      MONGODB_PASS: 'password'
+      MONGODB_DATABASE: 'nodejs-backend'
+    ports:
+     - "27017:27017"
+     - "28017:28017"

@@ -3,9 +3,17 @@ const bodyParser = require('body-parser');
 const app = express();
 
 const MongoClient = require('mongodb').MongoClient;
-const mongoUrl = 'mongodb://user:password@localhost:17207/nodejs-backend';
-
+const mongoUrl = 'mongodb://user:password@localhost:27017/nodejs-backend';
 let db;
+
+let GoogleAuth = require('google-auth-library');
+let auth = new GoogleAuth;
+var clientSecrets = require('./client-secrets.json');
+let client = new auth.OAuth2(
+    clientSecrets.web.client_id,
+    clientSecrets.web.client_secret,
+    clientSecrets.web.redirect_uris[0]
+);
 
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
@@ -13,34 +21,52 @@ app.use(function (req, res, next) {
     next();
 });
 
-app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
-    db.collection('user-data').findOne({_id: 'example-user'}, (err, result) => {
-        if (err) return console.log(err);
+app.get('/', (request, response) => {
+    let idToken = request.query.idToken;
+    client.verifyIdToken(
+        idToken,
+        clientSecrets.web.client_id,
+        function (err, login) {
+            if (err) throw err;
 
-        res.send(result);
-        console.log('Data retrieved');
-    });
+            const payload = login.getPayload();
+
+            if (payload.email_verified) {
+                db.collection('user-data').findOne({email: payload.email}, (err, result) => {
+                    if (err) return console.log(err);
+
+                    response.json(result);
+                    console.log('Data retrieved');
+                });
+            }
+        });
 });
 
-app.post('/', (req, res) => {
-    console.log('Post: ' + req.body);
-    let obj = req.body;
-    let idToken = req.query.idToken;
+app.post('/', (request, response) => {
+    console.log('Post: ' + JSON.stringify(request.body));
+    let obj = request.body;
+    let idToken = request.query.idToken;
+    client.verifyIdToken(
+        idToken,
+        clientSecrets.web.client_id,
+        function (err, login) {
+            if (err) throw err;
 
-    // validate token against google oauth provider
-    // if token is valid set the email that is returned by google as _id
+            const payload = login.getPayload();
 
-    obj._id = 'example-user';
+            if (payload.email_verified) {
+                obj.email = payload.email;
+                db.collection('user-data').updateOne({email: payload.email}, obj, {upsert: true}, (err, result) => {
+                    if (err) return console.log(err);
 
-    db.collection('user-data').updateOne(obj, (err, result) => {
-        if (err) return console.log(err);
+                    console.log('saved to database');
+                    response.json({result: request.body});
+                });
+            }
+        });
 
-        console.log('saved to database');
-        res.json({result: req.body});
-    });
 });
 
 MongoClient.connect(mongoUrl, (err, database) => {
@@ -50,4 +76,3 @@ MongoClient.connect(mongoUrl, (err, database) => {
         console.log('listening on 3000');
     });
 });
-
