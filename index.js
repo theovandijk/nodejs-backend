@@ -23,13 +23,13 @@ app.use(function (req, res, next) {
 
 app.use(bodyParser.json());
 
-app.get('/', (request, response) => {
+app.get('/', (request, response, next) => {
     let idToken = request.query.idToken;
     client.verifyIdToken(
         idToken,
         clientSecrets.web.client_id,
         function (err, login) {
-            if (err) throw err;
+            if (err) return next(err);
 
             const payload = login.getPayload();
 
@@ -38,13 +38,15 @@ app.get('/', (request, response) => {
                     if (err) return console.log(err);
 
                     response.json(result);
-                    console.log('Data retrieved');
+                    console.log('Data retrieved for user: ' + payload.email);
                 });
+            } else {
+                throw new Error('Unauthorized');
             }
         });
 });
 
-app.post('/', (request, response) => {
+app.post('/', (request, response, next) => {
     console.log('Post: ' + JSON.stringify(request.body));
     let obj = request.body;
     let idToken = request.query.idToken;
@@ -52,21 +54,29 @@ app.post('/', (request, response) => {
         idToken,
         clientSecrets.web.client_id,
         function (err, login) {
-            if (err) throw err;
+            if (err) return next(err);
 
             const payload = login.getPayload();
 
             if (payload.email_verified) {
                 obj.email = payload.email;
                 db.collection('user-data').updateOne({email: payload.email}, obj, {upsert: true}, (err, result) => {
-                    if (err) return console.log(err);
+                    if (err) return next(err);
 
                     console.log('saved to database');
                     response.json({result: request.body});
                 });
+            } else {
+                throw new Error('Unauthorized');
             }
         });
 
+});
+
+app.use(function (err, request, response, next) {
+    console.error(err.stack);
+    response.status(401);
+    return response.json(err.message);
 });
 
 MongoClient.connect(mongoUrl, (err, database) => {
