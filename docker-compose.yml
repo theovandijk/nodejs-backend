@@ -8,5 +8,5 @@ services:
       MONGODB_PASS: 'password'
       MONGODB_DATABASE: 'nodejs-backend'
     ports:
-     - "27017:27017"
-     - "28017:28017"
+      - "27017:27017"
+      - "28017:28017"
